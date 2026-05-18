@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>e-Khairat | Portal Kariah</title>
+
+    <!-- Fonts & CDN libs -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Shared modules (order matters: config → helpers → api) -->
+    <script src="assets/config.js"></script>
+    <script src="assets/helpers.js"></script>
+    <script src="assets/api.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+        .page-view { transition: opacity 0.3s ease-in-out; }
+        input, select, textarea { font-size: 16px !important; } /* Elak auto-zoom di iPhone */
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen pb-24 text-slate-800">
+
+    <!-- HEADER -->
+    <header class="glass sticky top-0 z-40 border-b border-slate-200">
+        <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <img data-cfg-src="LOGO_URL" src="" class="h-10 w-10 object-contain" alt="Logo Masjid">
+                <span class="font-bold text-xl tracking-tight text-slate-800">e-Khairat</span>
+            </div>
+            <nav class="hidden md:flex gap-6 text-sm font-medium text-slate-600">
+                <button onclick="showPage('utama')" class="hover:text-emerald-600 transition">Utama</button>
+                <button onclick="showPage('daftar')" class="hover:text-emerald-600 transition">Daftar Ahli</button>
+                <button onclick="showPage('semak')" class="hover:text-emerald-600 transition">Semak Status</button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 pt-8">
+
+        <!-- ============================================================== -->
+        <!-- PAGE: UTAMA                                                    -->
+        <!-- ============================================================== -->
+        <section id="page-utama" class="page-view">
+            <div class="bg-emerald-700 rounded-3xl p-8 text-white shadow-xl shadow-emerald-200 mb-8 relative overflow-hidden">
+                <div class="relative z-10">
+                    <h1 class="text-3xl font-bold mb-2">Sistem Khairat Kematian</h1>
+                    <p class="text-emerald-100 mb-6"><span data-cfg-text="MASJID_NAME">Masjid Annur Kanchong Tengah</span>. Pendaftaran dan semakan status keahlian secara digital.</p>
+                    <div class="flex flex-wrap gap-3">
+                        <button onclick="showPage('daftar')" class="bg-white text-emerald-700 px-6 py-3 rounded-2xl font-bold shadow-md transform active:scale-95 transition">Daftar Sekarang</button>
+                        <button onclick="showPage('semak')" class="bg-emerald-600 text-white border border-emerald-500 px-6 py-3 rounded-2xl font-bold transform active:scale-95 transition">Semak Ahli</button>
+                    </div>
+                </div>
+                <img data-cfg-src="LOGO_URL" src="" class="absolute -right-4 -bottom-4 w-48 h-48 opacity-20 grayscale brightness-200" alt="">
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 flex gap-4 items-center">
+                    <div class="bg-blue-50 p-3 rounded-xl text-blue-600"><i data-lucide="info"></i></div>
+                    <div><h3 class="font-bold">Panduan</h3><p class="text-xs text-slate-500">Lihat syarat & polisi keahlian.</p></div>
+                </div>
+                <div onclick="hubungiAdmin()" class="bg-white p-6 rounded-2xl border border-slate-200 flex gap-4 items-center cursor-pointer hover:bg-slate-50 transition active:scale-95">
+                    <div class="bg-green-50 p-3 rounded-xl text-green-600"><i data-lucide="message-circle"></i></div>
+                    <div><h3 class="font-bold">Hubungi Admin</h3><p class="text-xs text-slate-500">Klik untuk WhatsApp Bendahari.</p></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================== -->
+        <!-- PAGE: PENDAFTARAN (4-STEP)                                     -->
+        <!-- ============================================================== -->
+        <section id="page-daftar" class="page-view hidden">
+            <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="bg-slate-50 p-4 border-b border-slate-100 flex justify-between items-center">
+                    <h2 class="font-bold text-slate-800">Borang Pendaftaran</h2>
+                    <span id="step-indicator" class="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full uppercase">Langkah 1/4</span>
+                </div>
+
+                <form id="formDaftar" class="p-6">
+
+                    <!-- STEP 1: Maklumat Diri -->
+                    <div id="step1" class="form-step space-y-4">
+                        <div>
+                            <label for="nama" class="block text-xs font-bold text-slate-400 uppercase mb-1 ml-1">Nama Penuh (Seperti IC)</label>
+                            <input type="text" id="nama" class="w-full bg-slate-50 border border-slate-200 p-3.5 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500" placeholder="CONTOH: AHMAD BIN ABDULLAH" required>
+                        </div>
+                        <div>
+                            <label for="ic" class="block text-xs font-bold text-slate-400 uppercase mb-1 ml-1">No. Kad Pengenalan</label>
+                            <input type="text" id="ic" inputmode="numeric" maxlength="14" class="w-full bg-slate-50 border border-slate-200 p-3.5 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-mono" placeholder="880102-10-5544" required>
+                        </div>
+                        <button type="button" onclick="validateStep1()" class="w-full bg-emerald-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-emerald-100 mt-4">Seterusnya</button>
+                    </div>
+
+                    <!-- STEP 2: Hubungan & Alamat -->
+                    <div id="step2" class="form-step hidden space-y-4">
+                        <div>
+                            <label for="tel" class="block text-xs font-bold text-slate-400 uppercase mb-1 ml-1">No. Telefon WhatsApp</label>
+                            <input type="text" id="tel" inputmode="numeric" class="w-full bg-slate-50 border border-slate-200 p-3.5 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500" placeholder="012 345 6789" required>
+                        </div>
+                        <div>
+                            <label for="zon" class="block text-xs font-bold text-slate-400 uppercase mb-1 ml-1">Zon Kariah</label>
+                            <select id="zon" class="w-full bg-slate-50 border border-slate-200 p-3.5 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500">
+                                <option value="">Memuatkan zon...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="alamat" class="block text-xs font-bold text-slate-400 uppercase mb-1 ml-1">Alamat Penuh (No. Rumah, Lot, dll)</label>
+                            <textarea id="alamat" rows="2" class="w-full bg-slate-50 border border-slate-200 p-3.5 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 resize-none" placeholder="Contoh: No 12, Jalan Utama"></textarea>
+                            <p class="text-[10px] text-slate-400 mt-1 ml-1">Boleh kemaskini kemudian melalui admin.</p>
+                        </div>
+                        <div class="flex gap-3 pt-4">
+                            <button type="button" onclick="nextStep(1)" class="w-1/3 bg-slate-100 text-slate-600 font-bold py-4 rounded-2xl">Kembali</button>
+                            <button type="button" onclick="validateStep2()" class="w-2/3 bg-emerald-600 text-white font-bold py-4 rounded-2xl shadow-lg">Seterusnya</button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 3: Tanggungan -->
+                    <div id="step3" class="form-step hidden">
+                        <h3 class="font-bold text-slate-800 mb-1 text-center text-sm uppercase tracking-wider">Maklumat Tanggungan</h3>
+                        <p class="text-xs text-slate-500 text-center mb-5">Opsional. Boleh ditambah selepas pendaftaran.</p>
+
+                        <div id="senarai-tanggungan" class="space-y-3 mb-4">
+                            <!-- Tanggungan yang ditambah akan muncul di sini -->
+                        </div>
+
+                        <div class="bg-slate-50 p-4 rounded-2xl border-2 border-dashed border-slate-200 mb-6">
+                            <label for="t-nama" class="sr-only">Nama tanggungan</label>
+                            <input type="text" id="t-nama" class="w-full p-2.5 mb-2 rounded-lg border border-slate-200 text-sm uppercase" placeholder="Nama Tanggungan">
+                            <label for="t-ic" class="sr-only">IC tanggungan</label>
+                            <input type="text" id="t-ic" inputmode="numeric" maxlength="14" class="w-full p-2.5 mb-2 rounded-lg border border-slate-200 text-sm font-mono" placeholder="No. IC Tanggungan">
+                            <label for="t-tel" class="sr-only">Telefon tanggungan</label>
+                            <input type="text" id="t-tel" inputmode="numeric" class="w-full p-2.5 mb-3 rounded-lg border border-slate-200 text-sm" placeholder="No. Tel (Jika ada)">
+                            <button type="button" onclick="tambahKeSenarai()" class="w-full bg-emerald-100 text-emerald-700 font-bold py-2.5 rounded-xl text-sm">+ Tambah Tanggungan</button>
+                        </div>
+
+                        <div class="flex gap-3">
+                            <button type="button" onclick="nextStep(2)" class="w-1/3 bg-slate-100 text-slate-600 font-bold py-4 rounded-2xl">Kembali</button>
+                            <button type="button" onclick="gotoReview()" class="w-2/3 bg-emerald-600 text-white font-bold py-4 rounded-2xl shadow-lg">Seterusnya</button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 4: Pengesahan -->
+                    <div id="step4" class="form-step hidden space-y-4">
+                        <div class="text-center mb-5">
+                            <h3 class="font-bold text-slate-800 text-sm uppercase tracking-wider">Sila Semak Maklumat</h3>
+                            <p class="text-xs text-slate-500 mt-1">Pastikan semuanya betul sebelum hantar.</p>
+                        </div>
+
+                        <!-- Section: Maklumat Ahli -->
+                        <div class="bg-emerald-50/60 border border-emerald-100 rounded-2xl p-5">
+                            <div class="flex justify-between items-center mb-3">
+                                <h4 class="text-[10px] font-bold uppercase tracking-widest text-emerald-700">Maklumat Ahli</h4>
+                                <button type="button" onclick="nextStep(1)" class="text-[10px] text-emerald-600 font-bold uppercase hover:underline">Edit</button>
+                            </div>
+                            <dl class="space-y-3">
+                                <div>
+                                    <dt class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Nama Penuh</dt>
+                                    <dd id="r-nama" class="font-bold text-slate-800 text-sm mt-0.5">—</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">No. IC</dt>
+                                    <dd id="r-ic" class="font-mono text-slate-700 text-sm mt-0.5">—</dd>
+                                </div>
+                            </dl>
+                        </div>
+
+                        <!-- Section: Hubungan & Alamat -->
+                        <div class="bg-emerald-50/60 border border-emerald-100 rounded-2xl p-5">
+                            <div class="flex justify-between items-center mb-3">
+                                <h4 class="text-[10px] font-bold uppercase tracking-widest text-emerald-700">Hubungan & Alamat</h4>
+                                <button type="button" onclick="nextStep(2)" class="text-[10px] text-emerald-600 font-bold uppercase hover:underline">Edit</button>
+                            </div>
+                            <dl class="space-y-3">
+                                <div>
+                                    <dt class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">No. Telefon</dt>
+                                    <dd id="r-tel" class="font-mono text-slate-700 text-sm mt-0.5">—</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Zon Kariah</dt>
+                                    <dd id="r-zon" class="text-slate-700 text-sm mt-0.5">—</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Alamat</dt>
+                                    <dd id="r-alamat" class="text-slate-700 text-sm mt-0.5 whitespace-pre-line">—</dd>
+                                </div>
+                            </dl>
+                        </div>
+
+                        <!-- Section: Tanggungan -->
+                        <div class="bg-emerald-50/60 border border-emerald-100 rounded-2xl p-5">
+                            <div class="flex justify-between items-center mb-3">
+                                <h4 class="text-[10px] font-bold uppercase tracking-widest text-emerald-700">
+                                    Tanggungan <span id="r-tang-count" class="text-emerald-600 normal-case">(0)</span>
+                                </h4>
+                                <button type="button" onclick="nextStep(3)" class="text-[10px] text-emerald-600 font-bold uppercase hover:underline">Edit</button>
+                            </div>
+                            <div id="r-tang-list" class="space-y-2">
+                                <!-- senarai tanggungan akan diisi di sini -->
+                            </div>
+                        </div>
+
+                        <div class="flex gap-3 pt-2">
+                            <button type="button" onclick="nextStep(3)" class="w-1/3 bg-slate-100 text-slate-600 font-bold py-4 rounded-2xl">Kembali</button>
+                            <button type="submit" class="w-2/3 bg-emerald-700 text-white font-bold py-4 rounded-2xl shadow-lg shadow-emerald-200">Hantar Pendaftaran</button>
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+        </section>
+
+        <!-- ============================================================== -->
+        <!-- PAGE: SEMAKAN                                                  -->
+        <!-- ============================================================== -->
+        <section id="page-semak" class="page-view hidden">
+            <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="bg-amber-100 p-2 rounded-xl text-amber-600"><i data-lucide="search" class="w-5 h-5"></i></div>
+                    <h2 class="font-bold text-slate-800 text-lg">Semak Status Ahli</h2>
+                </div>
+                <p class="text-xs text-slate-400 mb-4 ml-1 uppercase font-bold tracking-wider">Masukkan 4 Digit Terakhir No. IC</p>
+                <div class="flex gap-3 mb-8">
+                    <label for="icSemak" class="sr-only">4 digit terakhir IC</label>
+                    <input type="text" id="icSemak" maxlength="4" inputmode="numeric" class="flex-1 bg-slate-50 border border-slate-200 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 text-center text-2xl font-bold tracking-[0.5em] text-slate-700" placeholder="0000">
+                </div>
+                <button onclick="prosesSemak()" class="w-full bg-emerald-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-emerald-100 active:scale-95 transition">Cari Ahli</button>
+
+                <div id="hasilSemakan" class="mt-8 hidden space-y-3">
+                    <!-- Results injected here -->
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MOBILE NAVIGATION -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 glass border-t border-slate-200 h-20 flex items-center justify-around px-6 z-50">
+        <button onclick="showPage('utama')" id="nav-utama" class="flex flex-col items-center gap-1 text-emerald-600">
+            <i data-lucide="home" class="w-6 h-6"></i><span class="text-[10px] font-bold">Utama</span>
+        </button>
+        <button onclick="showPage('daftar')" id="nav-daftar" class="flex flex-col items-center gap-1 text-slate-400">
+            <i data-lucide="user-plus" class="w-6 h-6"></i><span class="text-[10px] font-bold">Daftar</span>
+        </button>
+        <button onclick="showPage('semak')" id="nav-semak" class="flex flex-col items-center gap-1 text-slate-400">
+            <i data-lucide="search" class="w-6 h-6"></i><span class="text-[10px] font-bold">Semak</span>
+        </button>
+    </nav>
+
+    <!-- FLOATING WHATSAPP -->
+    <button onclick="hubungiAdmin()" class="fixed bottom-24 right-6 bg-green-500 text-white p-4 rounded-full shadow-2xl hover:scale-110 active:scale-90 transition-all z-40" aria-label="Hubungi admin via WhatsApp">
+        <i data-lucide="phone"></i>
+    </button>
+
+    <script>
+    // ======================================================================
+    // PAGE-SPECIFIC CODE (uses shared modules: AppConfig, Helpers, Api)
+    // ======================================================================
+
+    const { escapeHtml, attachUpper, attachIC, attachTel } = window.Helpers;
+    const { apiGet, apiPost } = window.Api;
+
+    // ----- STATE -----
+    let senaraiTanggungan = [];
+
+    // ----- PAGE NAVIGATION -----
+    function showPage(page) {
+        document.querySelectorAll('.page-view').forEach(p => p.classList.add('hidden'));
+        const target = document.getElementById('page-' + page);
+        if (target) target.classList.remove('hidden');
+
+        document.querySelectorAll('nav button').forEach(b => b.classList.replace('text-emerald-600', 'text-slate-400'));
+        const activeNav = document.getElementById('nav-' + page);
+        if (activeNav) activeNav.classList.replace('text-slate-400', 'text-emerald-600');
+
+        window.scrollTo(0, 0);
+    }
+
+    function nextStep(step) {
+        document.querySelectorAll('.form-step').forEach(s => s.classList.add('hidden'));
+        const target = document.getElementById('step' + step);
+        if (target) target.classList.remove('hidden');
+        document.getElementById('step-indicator').innerText =
+            `Langkah ${step}/${window.AppConfig.REGISTRATION_TOTAL_STEPS}`;
+        window.scrollTo(0, 0);
+    }
+
+    // ----- STEP VALIDATION -----
+    function validateStep1() {
+        const nama = document.getElementById('nama').value.trim();
+        const icDigits = document.getElementById('ic').value.replace(/\D/g, '');
+        if (nama.length < 3) return Swal.fire('Ralat', 'Sila masukkan nama penuh', 'warning');
+        if (icDigits.length !== 12) return Swal.fire('Ralat', 'No. IC mestilah tepat 12 digit nombor', 'warning');
+        nextStep(2);
+    }
+
+    function validateStep2() {
+        const telDigits = document.getElementById('tel').value.replace(/\D/g, '');
+        const zon = document.getElementById('zon').value;
+        if (telDigits.length < 10) return Swal.fire('Ralat', 'No. telefon tidak lengkap (minimum 10 digit)', 'warning');
+        if (!zon) return Swal.fire('Ralat', 'Sila pilih zon kariah', 'warning');
+        nextStep(3);
+    }
+
+    // ----- TANGGUNGAN -----
+    function tambahKeSenarai() {
+        const namaInput = document.getElementById('t-nama');
+        const icInput = document.getElementById('t-ic');
+        const telInput = document.getElementById('t-tel');
+
+        const nama = namaInput.value.toUpperCase().trim();
+        const ic = icInput.value.trim();
+        const tel = telInput.value.trim();
+
+        if (!nama || ic.replace(/\D/g, '').length !== 12) {
+            return Swal.fire('Info', 'Sila isi Nama dan No. IC Tanggungan dengan lengkap (12 digit)', 'warning');
+        }
+
+        senaraiTanggungan.push({ nama, ic, tel });
+        namaInput.value = '';
+        icInput.value = '';
+        telInput.value = '';
+        renderTanggungan();
+    }
+
+    function renderTanggungan() {
+        const container = document.getElementById('senarai-tanggungan');
+        container.innerHTML = senaraiTanggungan.map((t, index) => `
+            <div class="flex justify-between items-center bg-white p-3 rounded-xl border border-emerald-100 shadow-sm text-slate-800">
+                <div class="text-left">
+                    <p class="font-bold text-xs uppercase">${escapeHtml(t.nama)}</p>
+                    <p class="text-[10px] text-slate-400 font-mono">${escapeHtml(t.ic)}</p>
+                </div>
+                <button type="button" class="btn-buang-tang text-red-400 p-2" data-index="${index}" aria-label="Buang tanggungan">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+            </div>
+        `).join('');
+        lucide.createIcons();
+    }
+
+    function buangTanggungan(index) {
+        senaraiTanggungan.splice(index, 1);
+        renderTanggungan();
+    }
+
+    // ----- REVIEW (STEP 4) -----
+    function gotoReview() {
+        populateReview();
+        nextStep(4);
+    }
+
+    function populateReview() {
+        document.getElementById('r-nama').textContent   = document.getElementById('nama').value.toUpperCase().trim() || '—';
+        document.getElementById('r-ic').textContent     = document.getElementById('ic').value.trim() || '—';
+        document.getElementById('r-tel').textContent    = document.getElementById('tel').value.trim() || '—';
+        document.getElementById('r-zon').textContent    = document.getElementById('zon').value || '—';
+        document.getElementById('r-alamat').textContent = document.getElementById('alamat').value.trim() || '— (boleh kemaskini kemudian)';
+
+        document.getElementById('r-tang-count').textContent = `(${senaraiTanggungan.length})`;
+        const list = document.getElementById('r-tang-list');
+        if (senaraiTanggungan.length === 0) {
+            list.innerHTML = '<p class="text-xs text-slate-400 italic text-center py-2">Tiada tanggungan didaftarkan.</p>';
+        } else {
+            list.innerHTML = senaraiTanggungan.map(t => `
+                <div class="bg-white border border-emerald-100 rounded-xl px-3 py-2">
+                    <p class="font-bold text-xs uppercase text-slate-800">${escapeHtml(t.nama)}</p>
+                    <p class="text-[10px] text-slate-400 font-mono">${escapeHtml(t.ic)}${t.tel ? ' · ' + escapeHtml(t.tel) : ''}</p>
+                </div>
+            `).join('');
+        }
+    }
+
+    // ----- DATA FETCHING -----
+    async function loadZon() {
+        try {
+            const zonList = await apiGet('getZon');
+            const select = document.getElementById('zon');
+            select.innerHTML = '<option value="">Pilih zon...</option>' +
+                zonList.map(z => `<option value="${escapeHtml(z)}">${escapeHtml(z)}</option>`).join('');
+        } catch (err) {
+            console.error('Gagal memuat zon:', err);
+            document.getElementById('zon').innerHTML = '<option value="">Gagal memuat zon</option>';
+        }
+    }
+
+    async function handleSubmit(e) {
+        e.preventDefault();
+        Swal.fire({ title: 'Menghantar...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+        const data = {
+            nama:       document.getElementById('nama').value.toUpperCase().trim(),
+            ic:         document.getElementById('ic').value.trim(),
+            tel:        document.getElementById('tel').value.trim(),
+            zon:        document.getElementById('zon').value,
+            alamat:     document.getElementById('alamat').value.trim(),
+            kategori:   'Kariah',
+            tanggungan: senaraiTanggungan
+        };
+
+        try {
+            await apiPost('daftarAhli', data);
+            await Swal.fire('Berjaya!', 'Pendaftaran diterima. Sila hubungi admin untuk bayaran.', 'success');
+            e.target.reset();
+            senaraiTanggungan = [];
+            renderTanggungan();
+            showPage('utama');
+            nextStep(1);
+        } catch (err) {
+            Swal.fire('Ralat', err.message || 'Gagal menyambung ke server.', 'error');
+        }
+    }
+
+    async function prosesSemak() {
+        const ic4 = document.getElementById('icSemak').value.trim();
+        if (ic4.length !== 4) return Swal.fire('Info', 'Masukkan 4 digit terakhir IC.', 'warning');
+
+        Swal.fire({ title: 'Mencari...', didOpen: () => Swal.showLoading() });
+
+        try {
+            const data = await apiGet('semakStatus', { ic4 });
+            const hasilDiv = document.getElementById('hasilSemakan');
+            hasilDiv.innerHTML = '';
+
+            if (data.length === 0) {
+                Swal.fire('Tiada Rekod', 'Tiada padanan ahli ditemui.', 'question');
+                hasilDiv.classList.add('hidden');
+                return;
+            }
+
+            Swal.close();
+            hasilDiv.classList.remove('hidden');
+            data.forEach(item => {
+                const isAktif = String(item.status).toLowerCase() === 'aktif';
+                const html = `
+                    <div class="p-6 rounded-2xl text-center border shadow-sm ${isAktif ? 'bg-green-50 border-green-100' : 'bg-amber-50 border-amber-100'}">
+                        <p class="text-[10px] uppercase font-bold tracking-widest text-slate-400 mb-1">Nama Ahli</p>
+                        <h3 class="font-bold text-xl mb-3 text-slate-800">${escapeHtml(item.nama)}</h3>
+                        <span class="px-4 py-1 rounded-full text-[10px] font-bold uppercase ${isAktif ? 'bg-green-600 text-white' : 'bg-amber-500 text-white'}">
+                            ${escapeHtml(item.status)}
+                        </span>
+                    </div>`;
+                hasilDiv.insertAdjacentHTML('beforeend', html);
+            });
+        } catch (err) {
+            Swal.fire('Ralat', err.message || 'Gagal memproses semakan.', 'error');
+        }
+    }
+
+    function hubungiAdmin() {
+        const cfg = window.AppConfig;
+        window.open(`https://wa.me/${cfg.WHATSAPP_NO}?text=${cfg.WHATSAPP_GREETING}`, '_blank');
+    }
+
+    // ----- INIT -----
+    document.addEventListener('DOMContentLoaded', () => {
+        Helpers.applyConfigToDom();
+        lucide.createIcons();
+        loadZon();
+
+        // Ahli utama
+        attachUpper(document.getElementById('nama'));
+        attachIC(document.getElementById('ic'));
+        attachTel(document.getElementById('tel'));
+
+        // Tanggungan
+        attachUpper(document.getElementById('t-nama'));
+        attachIC(document.getElementById('t-ic'));
+        attachTel(document.getElementById('t-tel'));
+
+        // Form submit
+        document.getElementById('formDaftar').addEventListener('submit', handleSubmit);
+
+        // Event delegation untuk buang-tanggungan (XSS-safe pattern)
+        document.getElementById('senarai-tanggungan').addEventListener('click', e => {
+            const btn = e.target.closest('.btn-buang-tang');
+            if (btn) buangTanggungan(parseInt(btn.dataset.index, 10));
+        });
+    });
+    </script>
+</body>
+</html>

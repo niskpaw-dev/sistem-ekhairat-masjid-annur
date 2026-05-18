@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>e-Khairat | Admin Dashboard</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Shared modules (order matters) -->
+    <script src="assets/config.js"></script>
+    <script src="assets/helpers.js"></script>
+    <script src="assets/api.js"></script>
+    <script src="assets/auth.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; color: #1e293b; }
+        .swal2-input, .swal2-select, .swal2-textarea { font-size: 14px !important; border-radius: 12px !important; }
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen">
+
+    <!-- BOOT SCREEN (default visible while checking auto-login) -->
+    <div id="boot-screen" class="flex items-center justify-center min-h-screen">
+        <div class="text-center">
+            <div class="animate-spin h-10 w-10 border-4 border-emerald-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p class="text-sm text-slate-500">Memuatkan...</p>
+        </div>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="login-section" class="hidden items-center justify-center min-h-screen p-4">
+        <div class="bg-white p-8 rounded-3xl shadow-xl max-w-sm w-full border border-slate-200">
+            <div class="text-center mb-8">
+                <img data-cfg-src="LOGO_URL" src="" class="w-24 h-24 mx-auto mb-4 object-contain" alt="Logo Masjid">
+                <h1 class="text-2xl font-bold text-slate-800">Admin Login</h1>
+                <p class="text-slate-500 text-sm font-medium" data-cfg-text="MASJID_NAME">Masjid Annur Kanchong Tengah</p>
+            </div>
+            <form id="loginForm">
+                <label for="adminPass" class="sr-only">Kata laluan admin</label>
+                <input type="password" id="adminPass" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl mb-4 outline-none text-center text-xl tracking-widest" placeholder="••••••••" autocomplete="current-password">
+                <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-4 rounded-2xl shadow-lg hover:bg-emerald-700 transition active:scale-95">Masuk</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="admin-dashboard" class="hidden">
+        <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+            <div class="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <img data-cfg-src="LOGO_URL" src="" class="h-10 w-10 object-contain" alt="">
+                    <h1 class="font-bold text-xl text-slate-800">Dashboard Khairat</h1>
+                </div>
+                <div class="flex gap-2">
+                    <button id="btn-urus-zon" class="bg-emerald-50 text-emerald-700 px-4 py-2 rounded-xl font-bold text-sm border border-emerald-100 hover:bg-emerald-100 flex items-center gap-2">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i> Zon
+                    </button>
+                    <button id="btn-refresh" class="bg-slate-100 p-2 rounded-xl text-slate-500 hover:bg-slate-200" title="Refresh">
+                        <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+                    </button>
+                    <button id="btn-logout" class="bg-slate-100 p-2 rounded-xl text-slate-500 hover:bg-slate-200" title="Log keluar">
+                        <i data-lucide="log-out" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="max-w-7xl mx-auto p-4 md:p-8">
+            <!-- Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                    <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Total Ahli</p>
+                    <h2 id="stat-total" class="text-3xl font-bold">0</h2>
+                </div>
+                <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm border-l-4 border-l-emerald-500">
+                    <p class="text-emerald-600 text-[10px] font-bold uppercase tracking-widest">Aktif</p>
+                    <h2 id="stat-aktif" class="text-3xl font-bold">0</h2>
+                </div>
+                <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm border-l-4 border-l-amber-500">
+                    <p class="text-amber-600 text-[10px] font-bold uppercase tracking-widest">Pending</p>
+                    <h2 id="stat-pending" class="text-3xl font-bold">0</h2>
+                </div>
+            </div>
+
+            <!-- Member Table -->
+            <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-6 border-b border-slate-100 flex flex-col md:flex-row gap-4 justify-between items-center">
+                    <h3 class="font-bold text-lg">Senarai Ahli</h3>
+                    <div class="relative w-full md:w-72">
+                        <label for="searchBox" class="sr-only">Cari ahli</label>
+                        <input type="text" id="searchBox" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="Cari Nama/IC...">
+                        <i data-lucide="search" class="absolute left-3 top-3 text-slate-400 w-5 h-5"></i>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-slate-50 text-slate-500 text-[10px] font-bold uppercase">
+                            <tr>
+                                <th class="px-6 py-4 tracking-widest">Maklumat Ahli</th>
+                                <th class="px-6 py-4 tracking-widest">Zon</th>
+                                <th class="px-6 py-4 tracking-widest">Status</th>
+                                <th class="px-6 py-4 text-center tracking-widest">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="member-table-body" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+    // ======================================================================
+    // PAGE-SPECIFIC CODE (uses shared modules: AppConfig, Helpers, Api, Auth)
+    // ======================================================================
+
+    const { escapeHtml, applyICMask, applyTelMask, debounce } = window.Helpers;
+    const { apiGet, apiPost, isSessionError } = window.Api;
+    const Auth = window.Auth;
+    const { SEARCH_DEBOUNCE_MS } = window.AppConfig;
+
+    // ----- STATE -----
+    let allData = [];
+
+    // ----- UI VISIBILITY -----
+    function setVisible(id, visible, displayClass) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (visible) {
+            el.classList.remove('hidden');
+            if (displayClass) el.classList.add(displayClass);
+        } else {
+            el.classList.add('hidden');
+        }
+    }
+
+    function showLogin()     { setVisible('boot-screen', false); setVisible('login-section', true, 'flex'); setVisible('admin-dashboard', false); }
+    function showDashboard() { setVisible('boot-screen', false); setVisible('login-section', false);        setVisible('admin-dashboard', true); }
+
+    function handleSessionExpired() {
+        // Sudah di login screen? Skip double-notify.
+        if (!document.getElementById('login-section').classList.contains('hidden')) return;
+        showLogin();
+        Swal.fire('Sesi Tamat', 'Sila login semula.', 'info');
+    }
+
+    // ----- AUTH FLOW -----
+    async function tryAutoLogin() {
+        if (!Auth.loadToken()) {
+            showLogin();
+            return;
+        }
+        try {
+            allData = await Auth.apiAuthPost('adminGetAll', {});
+            showDashboard();
+            renderAll();
+        } catch (err) {
+            Auth.clearToken();
+            showLogin();
+        }
+    }
+
+    async function loginAdmin() {
+        const pass = document.getElementById('adminPass').value;
+        if (!pass) return Swal.fire('Info', 'Sila masukkan kata laluan', 'info');
+
+        Swal.fire({ title: 'Menyemak...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+        try {
+            const result = await apiPost('adminLogin', { password: pass });
+            Auth.saveToken(result.token);
+            allData = result.ahli || [];
+            Swal.close();
+            document.getElementById('adminPass').value = '';
+            showDashboard();
+            renderAll();
+        } catch (err) {
+            Swal.fire('Ralat', err.message || 'Gagal menyambung server.', 'error');
+        }
+    }
+
+    async function logout() {
+        const confirm = await Swal.fire({
+            title: 'Log keluar?',
+            text: 'Sesi semasa akan ditamatkan.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Ya, log keluar',
+            confirmButtonColor: '#64748b'
+        });
+        if (!confirm.isConfirmed) return;
+
+        const token = Auth.getToken();
+        if (token) {
+            try { await apiPost('adminLogout', { token }); } catch (e) { /* ignore */ }
+        }
+        Auth.clearToken();
+        allData = [];
+        showLogin();
+    }
+
+    async function refreshData() {
+        if (!Auth.getToken()) return;
+        Swal.fire({ title: 'Memuat semula...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        try {
+            allData = await Auth.apiAuthPost('adminGetAll', {});
+            renderAll();
+            Swal.close();
+        } catch (err) {
+            if (!isSessionError(err)) {
+                Swal.fire('Ralat', err.message || 'Gagal memuat semula.', 'error');
+            }
+        }
+    }
+
+    // ----- RENDER (stats & rows SEPARATE — filter tak ganggu stats) -----
+    function renderAll() {
+        renderStats(allData);
+        renderRows(allData);
+    }
+
+    function renderStats(data) {
+        let aktif = 0, pending = 0;
+        data.forEach(a => {
+            if (String(a.status || '').toLowerCase() === 'aktif') aktif++;
+            else pending++;
+        });
+        document.getElementById('stat-total').textContent   = data.length;
+        document.getElementById('stat-aktif').textContent   = aktif;
+        document.getElementById('stat-pending').textContent = pending;
+    }
+
+    function renderRows(data) {
+        const tbody = document.getElementById('member-table-body');
+        tbody.innerHTML = '';
+
+        if (!data || data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-12 text-center text-sm text-slate-400">Tiada data ahli.</td></tr>';
+            return;
+        }
+
+        const html = data.map(ahli => {
+            const status = String(ahli.status || 'Pending');
+            const isAktif = status.toLowerCase() === 'aktif';
+            return `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="px-6 py-4">
+                        <p class="font-bold text-sm text-slate-800 uppercase">${escapeHtml(ahli.nama)}</p>
+                        <p class="text-[10px] text-slate-400 font-mono tracking-wider">${escapeHtml(ahli.ic)}</p>
+                        <p class="text-[11px] text-emerald-600 font-bold">${escapeHtml(ahli.tel)}</p>
+                    </td>
+                    <td class="px-6 py-4 text-xs text-slate-500">${escapeHtml(ahli.zon)}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase ${isAktif ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}">
+                            ${escapeHtml(status)}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <button class="btn-edit-ahli bg-emerald-50 text-emerald-600 p-2.5 rounded-xl hover:bg-emerald-600 hover:text-white transition" data-ic="${escapeHtml(ahli.ic)}" aria-label="Edit ${escapeHtml(ahli.nama)}">
+                            <i data-lucide="edit-3" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                </tr>`;
+        }).join('');
+
+        tbody.innerHTML = html;
+        lucide.createIcons();
+    }
+
+    function filterTable() {
+        const query = document.getElementById('searchBox').value.toLowerCase();
+        const filtered = allData.filter(a => {
+            const nama = String(a.nama || '').toLowerCase();
+            const ic   = String(a.ic   || '').toLowerCase();
+            return nama.includes(query) || ic.includes(query);
+        });
+        renderRows(filtered);  // stats KEKAL
+    }
+
+    // ----- EDIT MODAL -----
+    function findAhli(ic) {
+        return allData.find(a => a.ic === ic);
+    }
+
+    async function bukaEditModal(icAhli) {
+        const ahli = findAhli(icAhli);
+        if (!ahli) return Swal.fire('Ralat', 'Data ahli tidak ditemui.', 'error');
+
+        Swal.fire({ title: 'Memuatkan Maklumat...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+        let zonList, tangList;
+        try {
+            [zonList, tangList] = await Promise.all([
+                apiGet('getZon'),
+                apiGet('getTanggungan', { icKetua: ahli.ic })
+            ]);
+        } catch (err) {
+            return Swal.fire('Ralat', err.message || 'Gagal memuatkan data', 'error');
+        }
+
+        const result = await Swal.fire({
+            title: 'Kemaskini Maklumat',
+            width: '500px',
+            html: buildEditModalHtml(ahli, zonList, tangList),
+            showCancelButton: true,
+            confirmButtonText: 'Simpan Info Ketua',
+            confirmButtonColor: '#059669',
+            didOpen: () => attachEditModalHandlers(ahli),
+            preConfirm: () => extractEditModalValues(ahli)
+        });
+
+        if (result.isConfirmed) {
+            await saveAhliEdit(result.value);
+        }
+    }
+
+    function buildEditModalHtml(ahli, zonList, tangList) {
+        const zonOptions = zonList.map(z =>
+            `<option value="${escapeHtml(z)}" ${z === ahli.zon ? 'selected' : ''}>${escapeHtml(z)}</option>`
+        ).join('');
+
+        const tangHTML = tangList.length === 0
+            ? '<p class="text-[10px] text-slate-400 italic text-center py-4">Tiada tanggungan berdaftar</p>'
+            : tangList.map(t => `
+                <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-200 mb-2">
+                    <div class="text-left">
+                        <p class="font-bold text-[11px] uppercase text-slate-800">${escapeHtml(t.nama)}</p>
+                        <p class="text-[9px] text-slate-400 font-mono">${escapeHtml(t.ic)}${t.tel ? ' · ' + escapeHtml(t.tel) : ''}</p>
+                    </div>
+                    <button class="btn-del-tang text-red-400 hover:text-red-600 p-1" data-ic="${escapeHtml(t.ic)}" aria-label="Padam ${escapeHtml(t.nama)}">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            `).join('');
+
+        return `
+            <div class="text-left space-y-4 px-1" style="max-height: 75vh; overflow-y: auto;">
+                <div class="border-b pb-1"><h4 class="font-bold text-[10px] text-emerald-600 uppercase tracking-widest">Maklumat Ketua</h4></div>
+
+                <div>
+                    <label for="e-nama" class="text-[10px] font-bold uppercase text-slate-400 ml-1">Nama Penuh</label>
+                    <input id="e-nama" class="swal2-input w-full m-0" value="${escapeHtml(ahli.nama)}">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="e-ic" class="text-[10px] font-bold uppercase text-slate-400 ml-1">No. IC</label>
+                        <input id="e-ic" class="swal2-input w-full m-0 font-mono" value="${escapeHtml(ahli.ic)}" maxlength="14">
+                    </div>
+                    <div>
+                        <label for="e-tel" class="text-[10px] font-bold uppercase text-slate-400 ml-1">No. Telefon</label>
+                        <input id="e-tel" class="swal2-input w-full m-0" value="${escapeHtml(ahli.tel)}">
+                    </div>
+                </div>
+
+                <div>
+                    <label for="e-zon" class="text-[10px] font-bold uppercase text-slate-400 ml-1">Zon</label>
+                    <select id="e-zon" class="swal2-select w-full m-0">${zonOptions}</select>
+                </div>
+
+                <div>
+                    <label for="e-alamat" class="text-[10px] font-bold uppercase text-slate-400 ml-1">Alamat Penuh</label>
+                    <textarea id="e-alamat" class="swal2-textarea w-full m-0 h-20">${escapeHtml(ahli.alamat)}</textarea>
+                </div>
+
+                <div>
+                    <label for="e-status" class="text-[10px] font-bold uppercase text-slate-400 ml-1">Status</label>
+                    <select id="e-status" class="swal2-select w-full m-0">
+                        <option value="Aktif"   ${ahli.status === 'Aktif'   ? 'selected' : ''}>Aktif</option>
+                        <option value="Pending" ${ahli.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="e-catatan" class="text-[10px] font-bold uppercase text-slate-400 ml-1">Catatan</label>
+                    <textarea id="e-catatan" class="swal2-textarea w-full m-0 h-16">${escapeHtml(ahli.catatan)}</textarea>
+                </div>
+
+                <div class="border-b pb-1 pt-4 flex justify-between items-center">
+                    <h4 class="font-bold text-[10px] text-emerald-600 uppercase tracking-widest">Senarai Tanggungan</h4>
+                    <button id="btn-add-tang" class="text-[9px] bg-emerald-600 text-white px-3 py-1 rounded-full font-bold uppercase tracking-tighter shadow-sm" data-ic="${escapeHtml(ahli.ic)}">+ Tambah</button>
+                </div>
+                <div id="list-tanggungan-admin">${tangHTML}</div>
+            </div>
+        `;
+    }
+
+    function attachEditModalHandlers(ahli) {
+        const nameIn = document.getElementById('e-nama');
+        const icIn   = document.getElementById('e-ic');
+        const telIn  = document.getElementById('e-tel');
+        if (nameIn) nameIn.addEventListener('input', e => e.target.value = e.target.value.toUpperCase());
+        if (icIn)   icIn.addEventListener('input', e => applyICMask(e.target));
+        if (telIn)  telIn.addEventListener('input', e => applyTelMask(e.target));
+
+        // Tanggungan: event delegation INSIDE modal container
+        const popup = Swal.getPopup();
+        if (popup) {
+            popup.addEventListener('click', e => {
+                const addBtn = e.target.closest('#btn-add-tang');
+                if (addBtn) { tambahTanggunganAdmin(addBtn.dataset.ic); return; }
+                const delBtn = e.target.closest('.btn-del-tang');
+                if (delBtn) { padamTanggunganAdmin(ahli.ic, delBtn.dataset.ic); return; }
+            });
+        }
+
+        lucide.createIcons();
+    }
+
+    function extractEditModalValues(ahli) {
+        return {
+            nama:     document.getElementById('e-nama').value.toUpperCase(),
+            ic:       document.getElementById('e-ic').value,
+            tel:      document.getElementById('e-tel').value,
+            zon:      document.getElementById('e-zon').value,
+            alamat:   document.getElementById('e-alamat').value,
+            status:   document.getElementById('e-status').value,
+            catatan:  document.getElementById('e-catatan').value,
+            oldIc:    ahli.ic,
+            kategori: 'Kariah'
+        };
+    }
+
+    async function saveAhliEdit(values) {
+        Swal.fire({ title: 'Menyimpan...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        try {
+            await Auth.apiAuthPost('editAhli', values);
+            await Swal.fire('Berjaya', 'Data ketua dikemaskini', 'success');
+            refreshData();
+        } catch (err) {
+            if (!isSessionError(err)) {
+                Swal.fire('Ralat', err.message || 'Gagal menyimpan.', 'error');
+            }
+        }
+    }
+
+    // ----- TANGGUNGAN -----
+    async function tambahTanggunganAdmin(icKetua) {
+        const result = await Swal.fire({
+            title: 'Tambah Ahli Keluarga',
+            html: `
+                <div class="text-left space-y-3">
+                    <div>
+                        <label for="ta-nama" class="text-[10px] font-bold uppercase text-slate-400 ml-1">Nama Tanggungan</label>
+                        <input id="ta-nama" class="swal2-input w-full m-0" placeholder="NAMA PENUH">
+                    </div>
+                    <div>
+                        <label for="ta-ic" class="text-[10px] font-bold uppercase text-slate-400 ml-1">No. IC</label>
+                        <input id="ta-ic" class="swal2-input w-full m-0 font-mono" placeholder="000000-00-0000" maxlength="14">
+                    </div>
+                    <div>
+                        <label for="ta-tel" class="text-[10px] font-bold uppercase text-slate-400 ml-1">No. Telefon</label>
+                        <input id="ta-tel" class="swal2-input w-full m-0" placeholder="012 345 6789">
+                    </div>
+                </div>`,
+            showCancelButton: true,
+            confirmButtonText: 'Tambah',
+            confirmButtonColor: '#059669',
+            didOpen: () => {
+                const nm = document.getElementById('ta-nama');
+                const ic = document.getElementById('ta-ic');
+                const tl = document.getElementById('ta-tel');
+                nm.addEventListener('input', e => e.target.value = e.target.value.toUpperCase());
+                ic.addEventListener('input', e => applyICMask(e.target));
+                tl.addEventListener('input', e => applyTelMask(e.target));
+            },
+            preConfirm: () => {
+                const nama = document.getElementById('ta-nama').value.trim();
+                const ic   = document.getElementById('ta-ic').value.trim();
+                const tel  = document.getElementById('ta-tel').value.trim();
+                if (!nama || ic.replace(/\D/g, '').length !== 12) {
+                    Swal.showValidationMessage('Nama dan IC (12 digit) wajib diisi');
+                    return false;
+                }
+                return { nama: nama.toUpperCase(), ic, tel, icKetua };
+            }
+        });
+
+        if (result.isConfirmed && result.value) {
+            Swal.fire({ title: 'Menambah...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            try {
+                await Auth.apiAuthPost('addTanggunganAdmin', result.value);
+                await Swal.fire('Berjaya', 'Tanggungan ditambah', 'success');
+                bukaEditModal(icKetua);
+            } catch (err) {
+                if (!isSessionError(err)) {
+                    Swal.fire('Ralat', err.message || 'Gagal menambah tanggungan.', 'error');
+                }
+            }
+        }
+    }
+
+    async function padamTanggunganAdmin(icKetua, icTang) {
+        const confirm = await Swal.fire({
+            title: 'Padam Tanggungan?',
+            text: 'Tindakan ini akan membuang ahli keluarga dari senarai.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            confirmButtonText: 'Ya, Padam'
+        });
+        if (!confirm.isConfirmed) return;
+
+        Swal.fire({ title: 'Memadam...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        try {
+            await Auth.apiAuthPost('delTanggunganAdmin', { icKetua, icTang });
+            bukaEditModal(icKetua);
+        } catch (err) {
+            if (!isSessionError(err)) {
+                Swal.fire('Ralat', err.message || 'Gagal memadam tanggungan.', 'error');
+            }
+        }
+    }
+
+    // ----- ZON -----
+    async function urusZon() {
+        const result = await Swal.fire({
+            title: 'Tambah Zon Baru',
+            input: 'text',
+            inputPlaceholder: 'Cth: Jalan Mawar',
+            showCancelButton: true,
+            confirmButtonColor: '#059669',
+            inputValidator: (value) => {
+                if (!value || !value.trim()) return 'Sila masukkan nama zon';
+            }
+        });
+
+        if (result.isConfirmed && result.value) {
+            Swal.fire({ title: 'Menyimpan...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            try {
+                await Auth.apiAuthPost('addZon', { zonName: result.value.toUpperCase() });
+                Swal.fire('Berjaya', 'Zon ditambah!', 'success');
+            } catch (err) {
+                if (!isSessionError(err)) {
+                    Swal.fire('Ralat', err.message || 'Gagal menambah zon.', 'error');
+                }
+            }
+        }
+    }
+
+    // ----- INIT -----
+    document.addEventListener('DOMContentLoaded', () => {
+        Helpers.applyConfigToDom();
+
+        document.getElementById('loginForm').addEventListener('submit', e => {
+            e.preventDefault();
+            loginAdmin();
+        });
+        document.getElementById('btn-urus-zon').addEventListener('click', urusZon);
+        document.getElementById('btn-refresh').addEventListener('click', refreshData);
+        document.getElementById('btn-logout').addEventListener('click', logout);
+        document.getElementById('searchBox').addEventListener('input', debounce(filterTable, SEARCH_DEBOUNCE_MS));
+
+        // Member table delegation (XSS-safe)
+        document.getElementById('member-table-body').addEventListener('click', e => {
+            const btn = e.target.closest('.btn-edit-ahli');
+            if (btn) bukaEditModal(btn.dataset.ic);
+        });
+
+        // Listen for session expiry dispatched by Auth module
+        window.addEventListener('session-expired', handleSessionExpired);
+
+        lucide.createIcons();
+        tryAutoLogin();
+    });
+    </script>
+</body>
+</html>
